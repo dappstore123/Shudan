@@ -58,7 +58,7 @@ function setupWeb3Provider() {
     }
   }
 
-  async function deployContracAddress (){
+  async function deployContracAddress (f){
     await enableInjectedWeb3EthereumConnection();
     setupWeb3Provider();
     
@@ -91,6 +91,7 @@ function setupWeb3Provider() {
         .then(function(newContractInstance){
             console.log(newContractInstance.options.address) // instance with the new contract address
             localStorage["contractAddress"] =newContractInstance.options.address;
+            f(newContractInstance.options.address);
         });
 
 
@@ -183,9 +184,6 @@ function setupWeb3Provider() {
     .on('receipt', function(receipt){
         console.log('receipt')
     })
-    .on('confirmation', function(confirmationNumber, receipt){
-        console.log('confirmation')
-    })
     .on('error', console.error);
   }
 
@@ -207,24 +205,30 @@ function setupWeb3Provider() {
     setupWeb3Provider();
     const accounts = await ethereum.enable()
       const account = accounts[0]
+      f({"account":account});
     var myContract = new web3.eth.Contract(abi,contractAddress);     
    myContract.methods.N().call().then(function(data){
     console.log("N",data)
 });
    myContract.methods.gameOver().call().then(function(data){
     console.log("gameOver",data)
+    f({"gameOver":data});
 });
    myContract.methods.start().call().then(function(data){
     console.log("start",data)
+    f({"start":data});
 });
    myContract.methods.owner().call().then(function(data){
     console.log("owner",data)
+    f({"owner":data});
 });
    myContract.methods.challenger().call().then(function(data){
     console.log("challenger",data)
+    f({"challenger":data});
 });
    myContract.methods.challengerValue(account).call().then(function(data){
     console.log("challengerValue",data)
+    f({"challengerValue":data});
 });
    
    myContract.methods.ownerValue().call().then(function(data){
@@ -252,11 +256,10 @@ function setupWeb3Provider() {
         if(data==data2){
             console.log("本人行棋");
             f({"player":data2,"myPlay":true});
-            //this.state.busy = false;
+           
         } else {
             console.log("对手行棋");
             f({"player":data2,"myPlay":false});
-           // this.state.isBusy = true;
         }
 
     });
@@ -264,19 +267,29 @@ function setupWeb3Provider() {
 });
    myContract.methods.challengeStatus().call().then(function(data){
     console.log("challengeStatus",data)
+    f({"challengeStatus":data});
 });
    myContract.methods.colors(1).call().then(function(data){
-    console.log("colors1",data)
+    console.log("blackColors",data)
+    f({"blackColors":data});
 });
 
 myContract.methods.colors(-1).call().then(function(data){
-    console.log("colors-1",data)
+    console.log("whiteColors",data)
+    f({"whiteColors":data});
 });
    myContract.methods.timer(1).call().then(function(data){
-    console.log("timer 1",data)
+    console.log("blackTimer",data)
+    f({"blackTimer":data});
 });
    myContract.methods.timer(-1).call().then(function(data){
-    console.log("timer -1",data)
+    console.log("whiteTimer",data)
+    f({"whiteTimer":data});
+
+    myContract.methods.applyforGameOverStatus().call().then(function(data){
+        console.log("applyforGameOverStatus",data)
+        f({"applyforGameOverStatus":data});
+    });
 });
    
   }
@@ -577,20 +590,53 @@ const createTwoWayCheckBox = component => (
 class App extends Component {
     constructor(props) {
         super(props)
-        //$('[target="_blank"]').removeAttr('target');
-        Array.from(document.querySelectorAll('[target="_blank"]'))
-  .forEach(link => link.removeAttribute('target'));
 
-  //document.querySelectorAll("_blank");for(var i in nodes){nodes[i].removeAttribute("target")}
+        Array.from(document.querySelectorAll('[target="_blank"]')).forEach(link => link.removeAttribute('target'));
+
+
           setupWeb3Provider();
         this.state = {
             board: new Board(signMap),
             vertexSize: 32,
             showCoordinates: true,
             alternateCoordinates: true,
-            
+            balance:0,//当前账号余额
+            account:"",
             isBusy: false,
-            player:1
+            player:1,
+            owner:"",
+            ownerValue:0,
+           
+            show:true,
+            contracAddress:"",
+            gameOver:false,
+            start: false,
+            challenger:"",
+            winer:"",
+            winerColor:0,
+            step:0,
+            challengeStatus:0,
+            applyforGameOverStatus:false,
+            challengerValue:0,
+            blackTimer:1000,
+            whiteTimer:1000,
+            score:-7.5,
+
+            deployBt:true,
+            testBt:true,
+            challengeBt:false,
+            challengeConfirmBt:false,
+            getBackChallengeBt:false,
+            applyforGameOverBt:false,
+            rejectApplyforGameOverBt:false,
+            forcerGameOverBt:false,
+            resignBt:false,
+            passMoveBt:false,
+            updateScoreBt:false,
+            destructBt:false,
+            getBackOwnerBt:false
+
+
         }
         var id = getQueryString("id");
         if(id!=null ){
@@ -598,7 +644,7 @@ class App extends Component {
             // 刷新
             localStorage["contractAddress"]=id;
             function changeStats (state) {
-                console.log(348,state.play)
+               
               
             }
             refreshAllFromChain(id,changeStats);
@@ -613,9 +659,7 @@ class App extends Component {
                 console.log("getBoard",data)
                var signM =  arrTrans(N,data);
                 var newB= new Board(signM)
-                console.log(674)
-                this.setState({board: newB})
-                console.log(676)
+                this.setState({board: newB,contracAddress:localStorage["contractAddress"],show:true})
                                      
            }.bind(this));
         }
@@ -642,6 +686,23 @@ class App extends Component {
                         flexDirection: 'column'
                     }
                 },
+                
+
+                h('p', {style: {margin: '0 0 .5em 0'}},
+                '您的账号是: '+this.state.account +'抵押金额为 :'+this.state.betBalance + '总余额为：' +this.state.balance,
+
+               
+                ),
+
+                h('p', {style: {margin: '0 0 .5em 0',display:this.state.show?"block":"none"}},
+                '部署完成，请将该地址分享给好友，邀请好友参与对战:  https://dappstore123.github.io/goGame/?id='+this.state.contracAddress,
+
+               
+                ),
+
+
+               
+
 
                 h('p', {style: {margin: '0 0 .5em 0'}},
                     'Size: ',
@@ -676,17 +737,132 @@ class App extends Component {
                         type: 'button',
                         title: '刷新状态',
                         onClick: evt => {
-                            //this.setState({board: new Board(signMap)})
                             
                             refreshAllFromChain(localStorage["contractAddress"],function(state) {
-                                console.log(341,state.myPlay)
-                                console.log(this)
                                 if(state.myPlay==true){
-                                    //this.setBusy(false)
+                                    this.setState({isBusy: false})
                                  }
                                  if(state.myPlay==false){
-                                    //this.setBusy(true) 
+                                    this.setState({isBusy: true})
                                  }
+
+                                 if(state.toPlay !=null){
+                                    //TODO 
+                                    this.setState({player:state.toPlay});
+                                 }
+                                 if(state.gameOver ==true){
+                                    this.setState({
+                                        gameOver:state.gameOver,
+                                        destructBt:true
+                                       
+                                    });
+                                    //TODO 
+                                 }
+                                 if(state.start ==true){
+                                    this.setState({
+                                        start:state.start,
+                                        challengeConfirmBt:false,
+                                        challengeBt:false,
+                                        getBackChallengeBt:false,
+                                        applyforGameOverBt:true,
+                                        rejectApplyforGameOverBt:false,
+                                        forcerGameOverBt:false,
+                                        resignBt:true,
+                                        passMoveBt:true,
+                                        updateScoreBt:true,
+                                        destructBt:false,
+                                        getBackOwnerBt:false
+                                    });
+                                   
+                                 }
+                                 if(state.owner !=null){
+                                   
+                                    this.setState({owner:state.owner});
+                                 }
+                                 if(state.challenger !=null){
+                                    
+                                    this.setState({challenger:state.challenger});
+                                 }
+                                 if(state.ownerValue !=null){
+                                    
+                                    this.setState({ownerValue:state.ownerValue});
+                                 }
+
+                                 if(state.winer !=null){
+                                    
+                                    this.setState({winer:state.winer});
+                                 }
+
+                                 if(state.winerColor !=null){
+                                     
+                                    this.setState({winerColor:state.winerColor});
+                                 }
+
+                                 if(state.step !=null){
+                                   
+                                    this.setState({step:state.step});
+                                 }
+
+                                 if(state.challengeStatus !=null){
+                                    this.setState({challengeStatus:state.challengeStatus});
+                                    if(state.challengeStatus == 1){
+                                        this.setState({
+                                            challengeBt:false,
+                                            challengeConfirmBt:true,
+                                            getBackChallengeBt:true
+                                        });
+                                    }
+
+                                    if(state.challengeStatus == 0){
+                                        this.setState({
+                                            challengeConfirmBt:false,
+                                            challengeBt:true,
+                                            getBackChallengeBt:false  
+                                        });
+                                    }
+                                    if(state.challengeStatus == 2){
+                                        this.setState({
+                                           challengeConfirmBt:false,
+                                            challengeBt:false,
+                                            getBackChallengeBt:false
+                                        });
+                                    }
+                                   
+                                 }
+
+                                 if(state.applyforGameOverStatus !=null){
+                                    this.setState({applyforGameOverStatus:state.applyforGameOverStatus});
+                                    if(state.applyforGameOverStatus == true && this.state.start == true){
+                                        this.setState({
+                                            applyforGameOverBt:false,
+                                            confirmApplyforGameOverBt:true
+                                           
+                                        });
+                                    }
+
+                                    if(state.applyforGameOverStatus == false && this.state.start == true){
+                                        this.setState({
+                                            applyforGameOverBt:true,
+                                            confirmApplyforGameOverBt:false
+                                            
+                                        });
+                                    }
+                                    
+                                   
+                                 }
+
+                                 
+
+                                 if(state.blackTimer !=null){
+                                    //TODO 
+                                    this.setState({blackTimer:state.blackTimer});
+                                 }
+
+                                 if(state.whiteTimer !=null){
+                                    //TODO 
+                                    this.setState({whiteTimer:state.whiteTimer});
+                                 }
+                                 //TODO
                             }.bind(this))
                         }
                     }, '刷新状态')
@@ -717,7 +893,7 @@ class App extends Component {
                  /** 
                         */
 
-                h('p', {style: {margin: '0 0 .5em 0'}},
+                h('p', {style: {margin: '0 0 .5em 0',display:this.state.deployBt?"block":"none"}},
                     ': ',
 
                     h('button', {
@@ -725,15 +901,17 @@ class App extends Component {
                         title: '部署代码',
                         
                         onClick: evt => {
-                             deployContracAddress();
-                            // await configureTransaction(true);
+                             deployContracAddress((contracAddress)=>{
+                                    this.setState({contracAddress:contracAddress,show:true});
+                             })
+                            
                         }
                     }, '部署代码')
                 ),
 
 
 
-                h('p', {style: {margin: '0 0 .5em 0'}},
+                h('p', {style: {margin: '0 0 .5em 0',display:this.state.deployBt?"block":"none"}},
                     '测试部署代码: ',
 
                     h('button', {
@@ -747,7 +925,7 @@ class App extends Component {
                     }, '部署')
                 ),
 
-                h('p', {style: {margin: '0 0 .5em 0'}},
+                h('p', {style: {margin: '0 0 .5em 0',display:this.state.challengeBt?"block":"none"}},
                 ': ',
                     h('button', {
                         type: 'button',
@@ -765,7 +943,7 @@ class App extends Component {
 
 
 
-                h('p', {style: {margin: '0 0 .5em 0'}},
+                h('p', {style: {margin: '0 0 .5em 0',display:this.state.challengeConfirmBt?"block":"none"}},
                     ': ',
 
                     h('button', {
@@ -780,7 +958,7 @@ class App extends Component {
                     }, '确认挑战')
                 ),
 
-                h('p', {style: {margin: '0 0 .5em 0'}},
+                h('p', {style: {margin: '0 0 .5em 0',display:this.state.challengeConfirmBt?"block":"none"}},
                     ': ',
 
                     h('button', {
@@ -796,7 +974,7 @@ class App extends Component {
 
 
 
-                h('p', {style: {margin: '0 0 .5em 0'}},
+                h('p', {style: {margin: '0 0 .5em 0',display:this.state.challengeConfirmBt?"block":"none"}},
                     ': ',
 
                     h('button', {
@@ -811,7 +989,7 @@ class App extends Component {
                 ),
 
 
-                h('p', {style: {margin: '0 0 .5em 0'}},
+                h('p', {style: {margin: '0 0 .5em 0',display:this.state.getBackChallengeBt?"block":"none"}},
                     ': ',
 
                     h('button', {
@@ -826,7 +1004,7 @@ class App extends Component {
                 ),
 
 
-                h('p', {style: {margin: '0 0 .5em 0'}},
+                h('p', {style: {margin: '0 0 .5em 0',display:this.state.getBackOwnerBt?"block":"none"}},
                     ': ',
 
                     h('button', {
@@ -842,7 +1020,7 @@ class App extends Component {
 
                 
 
-                h('p', {style: {margin: '0 0 .5em 0'}},
+                h('p', {style: {margin: '0 0 .5em 0',display:this.state.applyforGameOverBt?"block":"none"}},
                 ': ',
 
                 h('button', {
@@ -857,7 +1035,7 @@ class App extends Component {
                 ),
 
 
-                h('p', {style: {margin: '0 0 .5em 0'}},
+                h('p', {style: {margin: '0 0 .5em 0',display:this.state.challengeConfirmBt?"block":"none"}},
                 ': ',
 
                 h('button', {
@@ -871,7 +1049,7 @@ class App extends Component {
                 }, '同意点目')),
 
 
-                h('p', {style: {margin: '0 0 .5em 0'}},
+                h('p', {style: {margin: '0 0 .5em 0',display:this.state.challengeConfirmBt?"block":"none"}},
                 ': ',
 
                 h('button', {
@@ -885,7 +1063,7 @@ class App extends Component {
                 }, '拒绝点目')),
 
 
-                h('p', {style: {margin: '0 0 .5em 0'}},
+                h('p', {style: {margin: '0 0 .5em 0',display:this.state.forcerGameOverBt?"block":"none"}},
                 ': ',
 
                 h('button', {
@@ -899,7 +1077,7 @@ class App extends Component {
                 }, '强制点目')),
 
 
-                h('p', {style: {margin: '0 0 .5em 0'}},
+                h('p', {style: {margin: '0 0 .5em 0',display:this.state.resignBt?"block":"none"}},
                 ': ',
 
                 h('button', {
@@ -913,7 +1091,7 @@ class App extends Component {
                 }, '投降')),
 
 
-                h('p', {style: {margin: '0 0 .5em 0'}},
+                h('p', {style: {margin: '0 0 .5em 0',display:this.state.destructBt?"block":"none"}},
                 ': ',
 
                 h('button', {
@@ -927,7 +1105,7 @@ class App extends Component {
                 }, '胜利者取回奖励')),
 
 
-                h('p', {style: {margin: '0 0 .5em 0'}},
+                h('p', {style: {margin: '0 0 .5em 0',display:this.state.passMoveBt?"block":"none"}},
                 ': ',
 
                 h('button', {
@@ -941,13 +1119,12 @@ class App extends Component {
                 }, '放弃一手棋')),
 
 
-                h('p', {style: {margin: '0 0 .5em 0'}},
+                h('p', {style: {margin: '0 0 .5em 0',display:this.state.updateScoreBt?"block":"none"}},
                 ': ',
 
                 h('button', {
                     type: 'button',
                     title: '没啥用的更新积分',
-                    id:'updateScoreBut',
                     onClick: evt => {
                         updateScore();
 
