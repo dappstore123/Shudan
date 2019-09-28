@@ -624,17 +624,29 @@ class App extends Component {
 
             deployBt:true,
             testBt:true,
-            challengeBt:false,
-            challengeConfirmBt:false,
-            getBackChallengeBt:false,
-            applyforGameOverBt:false,
-            rejectApplyforGameOverBt:false,
-            forcerGameOverBt:false,
-            resignBt:false,
-            passMoveBt:false,
-            updateScoreBt:false,
-            destructBt:false,
-            getBackOwnerBt:false
+
+           
+            playingDiv:true,
+
+            challengeBt:true,
+            
+
+            challengeConfirmBt:true,
+            getBackChallengeBt:true,
+
+           
+
+            forcerGameOverBt:true,
+            applyforGameOverBt:true,
+            resignBt:true,
+            passMoveBt:true,
+            updateScoreBt:true,
+
+            
+            rejectApplyforGameOverBt:true,
+
+            destructBt:true,
+            getBackOwnerBt:true
 
 
         }
@@ -673,17 +685,88 @@ class App extends Component {
         return h('section',
             {
                 style: {
-                    display: 'grid',
-                    gridTemplateColumns: '15em auto',
-                    gridColumnGap: '1em'
+                   
+                    display: 'flex',
+                    flexDirection: 'column'
+                    
                 }
             },
 
-            h('form',
+
+            h('div',
+            {
+                style: {
+                    display: 'grid',
+                    gridTemplateColumns: 'auto auto auto auto auto auto auto auto auto auto auto auto',
+                    gridColumnGap: '1em'
+                }
+            },
+            
+            h('p', {style: {margin: '0 0 .5em 0',display:this.state.deployBt?"block":"none"}},
+            ': ',
+
+            h('button', {
+                type: 'button',
+                title: '新建游戏',
+                
+                onClick: evt => {
+                    deployContracAddress((contracAddress)=>{
+                            this.setState({contracAddress:contracAddress,show:true});
+                    })
+                    
+                }
+            }, '新建游戏')
+        ),
+
+
+
+            h('p', {style: {margin: '0 0 .5em 0',display:this.state.deployBt?"block":"none"}},
+                '测试新游戏: ',
+
+                h('button', {
+                    type: 'button',
+                    title: '测试新游戏',
+                    
+                    onClick: evt => {
+                        checkCode();
+
+                    }
+                }, '测试新游戏')
+            ),
+            h('p', {style: {margin: '0 0 .5em 0'}},
+            'Size: ',
+
+            h('button', {
+                type: 'button',
+                onClick: evt => {
+                    this.setState(s => ({vertexSize: Math.max(s.vertexSize - 4, 4)}))
+                }
+            }, '-'), ' ',
+
+            h('button', {
+                type: 'button',
+                title: 'Reset',
+                onClick: evt => {
+                    this.setState({vertexSize: 24})
+                }
+            }, '•'), ' ',
+
+            h('button', {
+                type: 'button',
+                onClick: evt => {
+                    this.setState(s => ({vertexSize: s.vertexSize + 4}))
+                }
+            }, '+')
+        )
+
+        ),
+
+            h('div',
                 {
                     style: {
-                        display: 'flex',
-                        flexDirection: 'column'
+                        display: 'grid',
+                        gridTemplateColumns: 'auto',
+                        gridColumnGap: '1em'
                     }
                 },
                 
@@ -691,47 +774,82 @@ class App extends Component {
                 h('p', {style: {margin: '0 0 .5em 0'}},
                 '您的账号是: '+this.state.account +'抵押金额为 :'+this.state.betBalance + '总余额为：' +this.state.balance,
 
-               
+            
                 ),
 
                 h('p', {style: {margin: '0 0 .5em 0',display:this.state.show?"block":"none"}},
                 '部署完成，请将该地址分享给好友，邀请好友参与对战:  https://dappstore123.github.io/goGame/?id='+this.state.contracAddress,
 
+            
+                )
+            ),
+
+            h('div', {},
+                h(Goban, {
+                    innerProps: {
+                        onContextMenu: evt => evt.preventDefault()
+                    },
+
+                    vertexSize,
+                    animate: true,
+                    busy: this.state.isBusy,
+                    
+                    coordX: alternateCoordinates ? i => chineseCoord[i] : undefined,
+                    coordY: alternateCoordinates ? i => i + 1 : undefined,
+
+                    signMap: this.state.board.signMap,
+                    showCoordinates,
+                    
+
+                    
+
+                    onVertexMouseUp: (evt, [x, y]) => {
+                        let sign = this.state.player
+                        if(parseInt(this.state.board.get([x, y]))!== 0){
+                            console.log(this.state.board.get([x, y]));
+                            return
+                        }
+                       console.log(735,this)
+                       console.log([x, y])
+                       var contracAddress = localStorage["contractAddress"];
+                        configureTransactionPlay(contracAddress,x+y*N,function () {
+                            console.log(738,this)
+                            let newBoard = this.state.board.makeMove(sign, [x, y])
+                            console.log(newBoard)
+                            this.setState({board: newBoard})
+                            this.state.player *= -1
+                        }.bind(this));
+
+                       
+                        
+                       
+                    }
+                }),
+
+                alternateCoordinates && h('style', {}, `
+                    .shudan-coordx span {
+                        font-size: .45em;
+                    }
+                `)
+            ),
+
+           
+
+            h('div',
+                {
+                    style: {
+                        display: 'grid',
+                        gridTemplateColumns: 'auto auto auto auto auto auto auto auto auto auto auto auto',
+                        gridColumnGap: '1em'
+                    }
+                },
+
                
-                ),
 
 
                
-
-
                 h('p', {style: {margin: '0 0 .5em 0'}},
-                    'Size: ',
-
-                    h('button', {
-                        type: 'button',
-                        onClick: evt => {
-                            this.setState(s => ({vertexSize: Math.max(s.vertexSize - 4, 4)}))
-                        }
-                    }, '-'), ' ',
-
-                    h('button', {
-                        type: 'button',
-                        title: 'Reset',
-                        onClick: evt => {
-                            this.setState({vertexSize: 24})
-                        }
-                    }, '•'), ' ',
-
-                    h('button', {
-                        type: 'button',
-                        onClick: evt => {
-                            this.setState(s => ({vertexSize: s.vertexSize + 4}))
-                        }
-                    }, '+')
-                ),
-
-                h('p', {style: {margin: '0 0 .5em 0'}},
-                    '从区块链刷新状态: ',
+                    ': ',
 
                     h('button', {
                         type: 'button',
@@ -747,7 +865,7 @@ class App extends Component {
                                  }
 
                                  if(state.toPlay !=null){
-                                    //TODO 
+
                                     this.setState({player:state.toPlay});
                                  }
                                  if(state.gameOver ==true){
@@ -756,25 +874,21 @@ class App extends Component {
                                         destructBt:true
                                        
                                     });
-                                    //TODO 
                                  }
                                  if(state.start ==true){
                                     this.setState({
                                         start:state.start,
-                                        challengeConfirmBt:false,
-                                        challengeBt:false,
-                                        getBackChallengeBt:false,
-                                        applyforGameOverBt:true,
-                                        rejectApplyforGameOverBt:false,
-                                        forcerGameOverBt:false,
-                                        resignBt:true,
-                                        passMoveBt:true,
-                                        updateScoreBt:true,
-                                        destructBt:false,
-                                        getBackOwnerBt:false
+                                        playingDiv:true
                                     });
                                    
-                                 }
+                                 } 
+                                 if(state.start ==false){
+                                    this.setState({
+                                        start:state.start,
+                                        playingDiv:false
+                                    });
+                                   
+                                 } 
                                  if(state.owner !=null){
                                    
                                     this.setState({owner:state.owner});
@@ -831,19 +945,21 @@ class App extends Component {
                                  }
 
                                  if(state.applyforGameOverStatus !=null){
+                                     console.log(834,state.applyforGameOverStatus)
+                                     console.log(835,this.state.start)
                                     this.setState({applyforGameOverStatus:state.applyforGameOverStatus});
                                     if(state.applyforGameOverStatus == true && this.state.start == true){
                                         this.setState({
                                             applyforGameOverBt:false,
-                                            confirmApplyforGameOverBt:true
+                                            rejectApplyforGameOverBt:true
                                            
                                         });
                                     }
 
-                                    if(state.applyforGameOverStatus == false && this.state.start == true){
+                                    if(state.applyforGameOverStatus == false ){
                                         this.setState({
                                             applyforGameOverBt:true,
-                                            confirmApplyforGameOverBt:false
+                                            rejectApplyforGameOverBt:false
                                             
                                         });
                                     }
@@ -887,43 +1003,18 @@ class App extends Component {
                        }.bind(this));
                     }
                 }, '刷新棋盘')
+                )
+                
             ),
-
-
-                 /** 
-                        */
-
-                h('p', {style: {margin: '0 0 .5em 0',display:this.state.deployBt?"block":"none"}},
-                    ': ',
-
-                    h('button', {
-                        type: 'button',
-                        title: '部署代码',
-                        
-                        onClick: evt => {
-                             deployContracAddress((contracAddress)=>{
-                                    this.setState({contracAddress:contracAddress,show:true});
-                             })
-                            
+    
+                h('div',
+                    {
+                        style: {
+                            display: this.state.playingDiv?'none':'grid',
+                            gridTemplateColumns: 'auto auto auto auto auto auto auto auto auto auto auto auto',
+                            gridColumnGap: '1em'
                         }
-                    }, '部署代码')
-                ),
-
-
-
-                h('p', {style: {margin: '0 0 .5em 0',display:this.state.deployBt?"block":"none"}},
-                    '测试部署代码: ',
-
-                    h('button', {
-                        type: 'button',
-                        title: '测试',
-                        
-                        onClick: evt => {
-                            checkCode();
-
-                        }
-                    }, '部署')
-                ),
+                    },   
 
                 h('p', {style: {margin: '0 0 .5em 0',display:this.state.challengeBt?"block":"none"}},
                 ': ',
@@ -948,14 +1039,28 @@ class App extends Component {
 
                     h('button', {
                         type: 'button',
-                        title: '确认挑战',
+                        title: '接受挑战',
                         
                         onClick: evt => {
                             var contracAddress = localStorage["contractAddress"];
                             challengeConfirm(contracAddress);
 
                         }
-                    }, '确认挑战')
+                    }, '接受挑战')
+                ),
+
+                h('p', {style: {margin: '0 0 .5em 0',display:this.state.challengeConfirmBt?"block":"none"}},
+                ': ',
+
+                    h('button', {
+                        type: 'button',
+                        title: '拒绝挑战',
+                        
+                        onClick: evt => {
+                            challengeReject();
+
+                        }
+                    }, '拒绝挑战')
                 ),
 
                 h('p', {style: {margin: '0 0 .5em 0',display:this.state.challengeConfirmBt?"block":"none"}},
@@ -974,23 +1079,11 @@ class App extends Component {
 
 
 
-                h('p', {style: {margin: '0 0 .5em 0',display:this.state.challengeConfirmBt?"block":"none"}},
-                    ': ',
-
-                    h('button', {
-                        type: 'button',
-                        title: '拒绝挑战',
-                        
-                        onClick: evt => {
-                            challengeReject();
-
-                        }
-                    }, '拒绝挑战')
-                ),
+               
 
 
                 h('p', {style: {margin: '0 0 .5em 0',display:this.state.getBackChallengeBt?"block":"none"}},
-                    ': ',
+                    ' ',
 
                     h('button', {
                         type: 'button',
@@ -1005,7 +1098,7 @@ class App extends Component {
 
 
                 h('p', {style: {margin: '0 0 .5em 0',display:this.state.getBackOwnerBt?"block":"none"}},
-                    ': ',
+                    ' ',
 
                     h('button', {
                         type: 'button',
@@ -1016,9 +1109,18 @@ class App extends Component {
 
                         }
                     }, '创建者取回押金')
-                ),
-
+                )
                 
+            ),
+
+            h('div',
+                {
+                    style: {
+                        display: this.state.playingDiv?'grid':'none',
+                        gridTemplateColumns: 'auto auto auto auto auto auto auto auto auto auto auto auto',
+                        gridColumnGap: '1em'
+                    }
+                },   
 
                 h('p', {style: {margin: '0 0 .5em 0',display:this.state.applyforGameOverBt?"block":"none"}},
                 ': ',
@@ -1035,48 +1137,6 @@ class App extends Component {
                 ),
 
 
-                h('p', {style: {margin: '0 0 .5em 0',display:this.state.challengeConfirmBt?"block":"none"}},
-                ': ',
-
-                h('button', {
-                    type: 'button',
-                    title: '同意点目',
-                    
-                    onClick: evt => {
-                        confirmApplyforGameOver();
-
-                    }
-                }, '同意点目')),
-
-
-                h('p', {style: {margin: '0 0 .5em 0',display:this.state.challengeConfirmBt?"block":"none"}},
-                ': ',
-
-                h('button', {
-                    type: 'button',
-                    title: '拒绝点目',
-                    
-                    onClick: evt => {
-                        rejectApplyforGameOver();
-
-                    }
-                }, '拒绝点目')),
-
-
-                h('p', {style: {margin: '0 0 .5em 0',display:this.state.forcerGameOverBt?"block":"none"}},
-                ': ',
-
-                h('button', {
-                    type: 'button',
-                    title: '强制点目',
-                    
-                    onClick: evt => {
-                        forcerGameOver();
-
-                    }
-                }, '强制点目')),
-
-
                 h('p', {style: {margin: '0 0 .5em 0',display:this.state.resignBt?"block":"none"}},
                 ': ',
 
@@ -1091,18 +1151,7 @@ class App extends Component {
                 }, '投降')),
 
 
-                h('p', {style: {margin: '0 0 .5em 0',display:this.state.destructBt?"block":"none"}},
-                ': ',
-
-                h('button', {
-                    type: 'button',
-                    title: '胜利者取回奖励',
-                    
-                    onClick: evt => {
-                        destruct();
-
-                    }
-                }, '胜利者取回奖励')),
+               
 
 
                 h('p', {style: {margin: '0 0 .5em 0',display:this.state.passMoveBt?"block":"none"}},
@@ -1119,6 +1168,18 @@ class App extends Component {
                 }, '放弃一手棋')),
 
 
+                h('p', {style: {margin: '0 0 .5em 0',display:this.state.forcerGameOverBt?"block":"none"}},
+                ': ',
+                h('button', {
+                    type: 'button',
+                    title: '强制点目',
+                    
+                    onClick: evt => {
+                        forcerGameOver();
+
+                    }
+                }, '强制点目')),
+
                 h('p', {style: {margin: '0 0 .5em 0',display:this.state.updateScoreBt?"block":"none"}},
                 ': ',
 
@@ -1131,60 +1192,62 @@ class App extends Component {
                     }
                 }, '更新积分')),
 
+                
 
 
+                h('p', {style: {margin: '0 0 .5em 0',display:this.state.destructBt?"block":"none"}},
+                ': ',
+
+                h('button', {
+                    type: 'button',
+                    title: '胜利者取回奖励',
+                    
+                    onClick: evt => {
+                        destruct();
+
+                    }
+                }, '胜利者取回奖励')),
                 
                 h(this.CheckBox, {stateKey: 'isBusy', text: 'Busy'})
             ),
 
-            h('div', {},
-                h(Goban, {
-                    innerProps: {
-                        onContextMenu: evt => evt.preventDefault()
-                    },
+            h('div',
+                {
+                    style: {
+                        display: this.state.rejectApplyforGameOverBt?'grid':'none',
+                        gridTemplateColumns: 'auto auto auto auto auto auto auto auto auto auto auto auto',
+                        gridColumnGap: '1em'
+                    }
+                },   
+                h('p', {style: {margin: '0 0 .5em 0',display:this.state.rejectApplyforGameOverBt?"block":"none"}},
+                    ': ',
 
-                    vertexSize,
-                    animate: true,
-                    busy: this.state.isBusy,
-                    
-                    coordX: alternateCoordinates ? i => chineseCoord[i] : undefined,
-                    coordY: alternateCoordinates ? i => i + 1 : undefined,
-
-                    signMap: this.state.board.signMap,
-                    showCoordinates,
-                    
-
-                    
-
-                    onVertexMouseUp: (evt, [x, y]) => {
-                        let sign = this.state.player
-                        if(parseInt(this.state.board.get([x, y]))!== 0){
-                            console.log(this.state.board.get([x, y]));
-                            return
-                        }
-                       console.log(735,this)
-                       console.log([x, y])
-                       var contracAddress = localStorage["contractAddress"];
-                        configureTransactionPlay(contracAddress,x+y*N,function () {
-                            console.log(738,this)
-                            let newBoard = this.state.board.makeMove(sign, [x, y])
-                            console.log(newBoard)
-                            this.setState({board: newBoard})
-                            this.state.player *= -1
-                        }.bind(this));
-
-                       
+                    h('button', {
+                        type: 'button',
+                        title: '同意点目',
                         
-                       
-                    }
-                }),
+                        onClick: evt => {
+                            confirmApplyforGameOver();
 
-                alternateCoordinates && h('style', {}, `
-                    .shudan-coordx span {
-                        font-size: .45em;
-                    }
-                `)
+                        }
+                    }, '同意点目')),
+
+
+                    h('p', {style: {margin: '0 0 .5em 0',display:this.state.rejectApplyforGameOverBt?"block":"none"}},
+                    ': ',
+
+                    h('button', {
+                        type: 'button',
+                        title: '拒绝点目',
+                        
+                        onClick: evt => {
+                            rejectApplyforGameOver();
+
+                        }
+                    }, '拒绝点目')),
             )
+
+            
         )
     }
 }
